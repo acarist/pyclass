@@ -1,0 +1,51 @@
+touch app.py
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    @app.route('/')
+    def index():
+        return "Hello world!"
+
+    if __name__ == '__main__':
+        app.run()
+
+
+touch Vagrantfile
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/precise32"
+  config.vm.network "public_network"
+end
+
+vagrant up
+vagrant ssh
+    uname -a
+    sudo apt-get install nginx
+    sudo apt-get install python-pip
+    sudo apt-get install python-virtualenv
+    cd /home/vagrant
+    mkdir www
+    cd www
+    virtualenv --no-site-packages .
+    mkdir codebase
+    cp /vagrant/* /home/vagrant/www/codebase/
+    source bin/activate
+    vim /home/vagrant/.pip/pip.conf
+        [global] 
+        index-url=https://pypi.python.org/simple/
+    pip install gunicorn
+    pip install -r codebase/requirements.txt
+    cd codebase
+    gunicorn app:app -b 127.0.0.1:8000 --daemon #--workers 3
+    sudo /etc/init.d/nginx start
+    sudo rm /etc/nginx/sites-enabled/default
+    sudo touch /etc/nginx/sites-available/codebase
+    sudo ln -s /etc/nginx/sites-available/codebase  /etc/nginx/sites-enabled/codebase
+    sudo vim /etc/nginx/sites-enabled/codebase
+        server {
+                location / {
+                        proxy_pass http://127.0.0.1:8000;
+                }
+        }
+    sudo /etc/init.d/nginx restart
